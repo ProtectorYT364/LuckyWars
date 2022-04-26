@@ -14,8 +14,8 @@ class ResetMap implements Task {
 	public function reload($lev) {
 		$name = $lev->getFolderName();
 		
-		if ($this->plugin->getOwner()->getServer()->isLevelLoaded($name)) {
-			$this->plugin->getOwner()->getServer()->unloadLevel($this->plugin->getOwner()->getServer()->getLevelByName($name));
+		if ($this->plugin->getOwner()->getServer()->isWorldLoaded($name)) {
+			$this->plugin->getOwner()->getServer()->unloadWorld($this->plugin->getOwner()->getServer()->getWorldByName($name));
 		}
 		
 		$zip = new \ZipArchive;
@@ -23,7 +23,7 @@ class ResetMap implements Task {
 		$zip->extractTo($this->plugin->getOwner()->getServer()->getDataPath() . 'worlds');
 		$zip->close();
 		unset($zip);
-		$this->plugin->getOwner()->getServer()->loadLevel($name);
+		$this->plugin->getOwner()->getServer()->loadWorld($name);
 		return true;
 	}
 

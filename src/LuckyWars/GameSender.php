@@ -5,9 +5,9 @@ namespace LuckyWars;
 use pocketmine\scheduler\Task;
 use pocketmine\utils\TextFormat;
 use pocketmine\utils\Config;
-use pocketmine\level\Level;
+use pocketmine\world\World;
 use LuckyWars\ResetMap;
-use pocketmine\level\sound\PopSound;
+use pocketmine\world\sound\PopSound;
 use pocketmine\block\Air;
 
 class GameSender extends Task {
@@ -30,10 +30,10 @@ class GameSender extends Task {
 			foreach ($arenas as $arena) {
 				$time = $config->get($arena . "PlayTime");
 				$timeToStart = $config->get($arena . "StartTime");
-				$levelArena = $this->plugin->getServer()->getLevelByName($arena);
+				$worldArena = $this->plugin->getServer()->getWorldByName($arena);
 
-				if ($levelArena instanceof Level) {
-					$playersArena = $levelArena->getPlayers();
+				if ($worldArena instanceof World) {
+					$playersArena = $worldArena->getPlayers();
 					if (count($playersArena) == 0) {
 						$config->set($arena . "PlayTime", 780);
 						$config->set($arena . "StartTime", 30);
@@ -50,18 +50,18 @@ class GameSender extends Task {
 								foreach ($playersArena as $pl) {
 									$pl->sendPopup(TextFormat::GREEN."Starting in" . TextFormat::GREEN . $timeToStart . TextFormat::RESET);
 									if ($timeToStart <= 5) {
-										$levelArena->addSound(new PopSound($pl));
+										$worldArena->addSound(new PopSound($pl));
 									}
 								}
 
 								if ($timeToStart == 29) {
-									$levelArena->setTime(7000);
-									$levelArena->stopTime();
+									$worldArena->setTime(7000);
+									$worldArena->stopTime();
 								}
 
 								if ($timeToStart <= 0) {
 									foreach ($playersArena as $pl) {
-										$pl->getLevel()->setBlock($pl->floor()->subtract(0, 1), new Air());
+										$pl->getWorld()->setBlock($pl->floor()->subtract(0, 1), new Air());
 									}
 								}
 								$config->set($arena . "StartTime", $timeToStart);
@@ -73,11 +73,11 @@ class GameSender extends Task {
 										$this->plugin->getServer()->broadcastMessage($this->prefix . $pl->getName() . TextFormat::GREEN . " Won in the arena " . TextFormat::AQUA . $arena);
 										$pl->getInventory()->clearAll();
 										$pl->removeAllEffects();
-										$pl->teleport($this->plugin->getServer()->getDefaultLevel()->getSafeSpawn(), 0, 0);
+										$pl->teleport($this->plugin->getServer()->getDefaultWorld()->getSafeSpawn(), 0, 0);
 										$pl->setHealth(20);
 										$pl->setFood(20);
 										$pl->setNameTag($pl->getName());
-										$this->getResetmap()->reload($levelArena);
+										$this->getResetmap()->reload($worldArena);
 									}
 									$config->set($arena . "PlayTime", 780);
 									$config->set($arena . "StartTime", 30);
@@ -124,13 +124,13 @@ class GameSender extends Task {
 									if ($time <= 0) {
 										$this->plugin->getServer()->broadcastMessage($this->prefix . TextFormat::GREEN . "There are no winners in the arena " . TextFormat::AQUA . $arena);
 										foreach ($playersArena as $pl) {
-											$pl->teleport($this->plugin->getServer()->getDefaultLevel()->getSafeSpawn(), 0, 0);
+											$pl->teleport($this->plugin->getServer()->getDefaultWorld()->getSafeSpawn(), 0, 0);
 											$pl->getInventory()->clearAll();
 											$pl->removeAllEffects();
 											$pl->setFood(20);
 											$pl->setHealth(20);
 											$pl->setNameTag($pl->getName());
-											$this->getResetmap()->reload($levelArena);
+											$this->getResetmap()->reload($worldArena);
 											$config->set($arena . "start", 0);
 											$config->save();
 										}

@@ -1,5 +1,6 @@
 # LuckyWars
 An advanced plugin to add LuckyWars Minigame to your PocketMine-MP server.
 
-## Usage
-Download the latest build from [Poggit](https://poggit.pmmp.io/ci/BlockNetworks/LuckyWars/).
+## Credits
+
+> [ReVape, ProtectorYT] who updated it to api 4

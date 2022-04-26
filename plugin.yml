@@ -1,10 +1,10 @@
 name: LuckyWars
-version: 1.5.1
+version: 1.5.2
 load: STARTUP
 main: LuckyWars\LuckyWars
-api: 3.15.0
+api: 4.0.0
+author: [revape, protectoryt]
 description: LuckyWars Minigame for your PocketMine-MP server
-website: https://github.com/BlockNetworks/LuckyWars
 
 commands:
   lw:

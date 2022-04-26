@@ -18,15 +18,15 @@ class RefreshSigns extends Task {
 	}
 
 	public function onRun($tick) {
-		$level = $this->plugin->getServer()->getDefaultLevel();
-		$tiles = $level->getTiles();
+		$world = $this->plugin->getServer()->getDefaultWorld();
+		$tiles = $world->getTiles();
 		foreach ($tiles as $t) {
 			if ($t instanceof Sign) {	
 				$text = $t->getText();
 				if ($text[3] == $this->prefix) {
 					$aop = 0;
 					$namemap = str_replace("§f", "", $text[2]);
-					$play = $this->plugin->getServer()->getLevelByName($namemap)->getPlayers();
+					$play = $this->plugin->getServer()->getWorldByName($namemap)->getPlayers();
 					foreach ($play as $pl) {
 						$aop = $aop + 1;
 					}

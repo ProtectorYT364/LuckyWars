@@ -11,9 +11,9 @@ use pocketmine\command\CommandSender;
 use pocketmine\command\Command;
 use pocketmine\utils\TextFormat;
 use pocketmine\utils\Config;
-use pocketmine\level\Position;
+use pocketmine\World\Position;
 use pocketmine\tile\Sign;
-use pocketmine\level\Level;
+use pocketmine\world\World;
 use pocketmine\item\Item;
 use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\block\BlockPlaceEvent;
@@ -22,7 +22,7 @@ use pocketmine\event\player\PlayerQuitEvent;
 use LuckyWars\GameSender;
 use LuckyWars\RefreshSigns;
 use LuckyWars\ResetMap;
-use pocketmine\level\sound\PopSound;
+use pocketmine\World\sound\PopSound;
 use pocketmine\block\Air;
 use pocketmine\math\Vector3;
 
@@ -31,10 +31,10 @@ class LuckyWars extends PluginBase implements Listener {
 	public $prefix = TextFormat::GRAY . "[" . TextFormat::YELLOW . "Lucky" . TextFormat::AQUA . "Wars" . extFormat::GRAY . "]";
 	public $mode = 0;
 	public $arenas = [];
-	public $currentLevel = "";
+	public $currentWorld = "";
 	public $op = [];
 
-	public function onEnable() : void {
+	public function onEnable(): void {
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 		@mkdir($this->getDataFolder());
 		$config = new Config($this->getDataFolder() . "/config.yml", Config::YAML);
@@ -44,7 +44,7 @@ class LuckyWars extends PluginBase implements Listener {
 		}
 
 		foreach ($this->arenas as $lev) {
-			$this->getServer()->loadLevel($lev);
+			$this->getServer()->loadWorld($lev);
 		}
 
 		$items = array(
@@ -97,11 +97,11 @@ class LuckyWars extends PluginBase implements Listener {
 
 	public function onMove(PlayerMoveEvent $event) {
 		$player = $event->getPlayer();
-		$level = $player->getLevel()->getFolderName();
+		$world = $player->getWorld()->getFolderName();
 
-		if (in_array($level,$this->arenas)) {
+		if (in_array($world,$this->arenas)) {
 			$config = new Config($this->getDataFolder() . "/config.yml", Config::YAML);
-			$sofar = $config->get($level . "StartTime");
+			$sofar = $config->get($world . "StartTime");
 
 			if ($sofar > 0) {
 				$from = $event->getFrom();
@@ -115,25 +115,25 @@ class LuckyWars extends PluginBase implements Listener {
 
 	public function onLog(PlayerLoginEvent $event) {
 		$player = $event->getPlayer();
-		if (in_array($player->getLevel()->getFolderName(), $this->arenas)) {
+		if (in_array($player->getWorld()->getFolderName(), $this->arenas)) {
 			$player->getInventory()->clearAll();
-			$spawn = $this->getServer()->getDefaultLevel()->getSafeSpawn();
-			$this->getServer()->getDefaultLevel()->loadChunk($spawn->getFloorX(), $spawn->getFloorZ());
+			$spawn = $this->getServer()->getDefaultWorld()->getSafeSpawn();
+			$this->getServer()->getDefaultWorld()->loadChunk($spawn->getFloorX(), $spawn->getFloorZ());
 			$player->teleport($spawn, 0, 0);
 		}
 	}
 
 	public function onQuit(PlayerQuitEvent $event) {
 		$pl = $event->getPlayer();
-		$level = $pl->getLevel()->getFolderName();
-		if (in_array($level,$this->arenas)) {
+		$world = $pl->getWorld()->getFolderName();
+		if (in_array($world,$this->arenas)) {
 			$pl->removeAllEffects();
 			$pl->getInventory()->clearAll();
 			$slots = new Config($this->getDataFolder() . "/slots.yml", Config::YAML);
 			$pl->setNameTag($pl->getName());
 			for ($i = 1; $i <= 12; $i++) {
-				if ($slots->get("slot" . $i . $level) == $pl->getName()) {
-					$slots->set("slot" . $i . $level, 0);
+				if ($slots->get("slot" . $i . $world) == $pl->getName()) {
+					$slots->set("slot" . $i . $world, 0);
 				}
 			}
 			$slots->save();
@@ -142,12 +142,12 @@ class LuckyWars extends PluginBase implements Listener {
 
 	public function onBlockBreaks(BlockBreakEvent $event) {
 		$player = $event->getPlayer();
-		$level = $player->getLevel()->getFolderName();
+		$world = $player->getWorld()->getFolderName();
         $block = $event->getBlock();
-		if (in_array($level,$this->arenas)) {
+		if (in_array($world,$this->arenas)) {
 			$config = new Config($this->getDataFolder() . "/config.yml", Config::YAML);
-			if ($config->get($level . "PlayTime") != null) {
-				if ($config->get($level . "PlayTime") > 779) {
+			if ($config->get($world . "PlayTime") != null) {
+				if ($config->get($world . "PlayTime") > 779) {
 					$event->setCancelled(true);
 				}
 			}
@@ -155,15 +155,15 @@ class LuckyWars extends PluginBase implements Listener {
 				$k = array_rand($config->get("luckyitems"));
 				$v = $config->get("luckyitems")[$k];
 				$event->setDrops(array(Item::get(Item::AIR, 0, 1)));
-				$player->getLevel()->dropItem(new Vector3($block->getX(), $block->getY(), $block->getZ()), Item::get($v[0], $v[1], $v[2]));
+				$player->getWorld()->dropItem(new Vector3($block->getX(), $block->getY(), $block->getZ()), Item::get($v[0], $v[1], $v[2]));
 			}
 		}
 	}
 
 	public function onBlockPlace(BlockPlaceEvent $event) {
 		$player = $event->getPlayer();
-		$level = $player->getLevel()->getFolderName();
-		if (in_array($level,$this->arenas)) {
+		$world = $player->getWorld()->getFolderName();
+		if (in_array($world,$this->arenas)) {
 			$event->setCancelled(false);
 		}
 	}
@@ -176,18 +176,18 @@ class LuckyWars extends PluginBase implements Listener {
 						if ($args[0] == "create") {
 							if (!empty($args[1])) {
 								if (file_exists($this->getServer()->getDataPath() . "/worlds/" . $args[1])) {
-									$this->getServer()->loadLevel($args[1]);
-									$this->getServer()->getLevelByName($args[1])->loadChunk(
-										$this->getServer()->getLevelByName($args[1])->getSafeSpawn()->getFloorX(),
-										$this->getServer()->getLevelByName($args[1])->getSafeSpawn()->getFloorZ()
+									$this->getServer()->loadWorld($args[1]);
+									$this->getServer()->getWorldByName($args[1])->loadChunk(
+										$this->getServer()->getWorldByName($args[1])->getSafeSpawn()->getFloorX(),
+										$this->getServer()->getWorldByName($args[1])->getSafeSpawn()->getFloorZ()
 									);
 									array_push($this->arenas, $args[1]);
-									$this->currentLevel = $args[1];
+									$this->currentWorld = $args[1];
 									$this->mode = 1;
 									$player->sendMessage($this->prefix . "Touch the spawn points");
 									$player->setGamemode(1);
 									array_push($this->op, $player->getName());
-									$player->teleport($this->getServer()->getLevelByName($args[1])->getSafeSpawn(), 0, 0);
+									$player->teleport($this->getServer()->getWorldByName($args[1])->getSafeSpawn(), 0, 0);
 									$name = $args[1];
 									$this->zipper($player, $name);
 								} else {
@@ -216,10 +216,10 @@ class LuckyWars extends PluginBase implements Listener {
 							$player->sendMessage($this->prefix . "Starting in 10...");
 						}
 					} else {
-						$level = $player->getLevel()->getFolderName();
+						$world = $player->getWorld()->getFolderName();
 						$config = new Config($this->getDataFolder() . "/config.yml", Config::YAML);
-						if ($config->get($level . "StartTime") != null) {
-							$config->set($level . "StartTime", 10);
+						if ($config->get($world . "StartTime") != null) {
+							$config->set($world . "StartTime", 10);
 							$config->save();
 							$player->sendMessage($this->prefix . "Starting in 10...");
 						}
@@ -233,13 +233,13 @@ class LuckyWars extends PluginBase implements Listener {
 	public function onInteract(PlayerInteractEvent $event) {
 		$player = $event->getPlayer();
 		$block = $event->getBlock();
-		$tile = $player->getLevel()->getTile($block);
+		$tile = $player->getWorld()->getTile($block);
 
 		if ($tile instanceof Sign) {
 			if (($this->mode == 26) && (in_array($player->getName(), $this->op))) {
-				$tile->setText(TextFormat::AQUA . "[Join]", TextFormat::YELLOW  . "0 / 12", "§f" . $this->currentLevel,$this->prefix);
+				$tile->setText(TextFormat::AQUA . "[Join]", TextFormat::YELLOW  . "0 / 12", "§f" . $this->currentWorld,$this->prefix);
 				$this->refreshArenas();
-				$this->currentLevel = "";
+				$this->currentWorld = "";
 				$this->mode = 0;
 				$player->sendMessage($this->prefix . "Registered arena");
 				array_shift($this->op);
@@ -250,18 +250,18 @@ class LuckyWars extends PluginBase implements Listener {
 						$config = new Config($this->getDataFolder() . "/config.yml", Config::YAML);
 						$slots = new Config($this->getDataFolder() . "/slots.yml", Config::YAML);
 						$namemap = str_replace("§f", "", $text[2]);
-						$level = $this->getServer()->getLevelByName($namemap);
+						$world = $this->getServer()->getWorldByName($namemap);
 						for ($i = 1; $i <= 12; $i++) {
 							if ($slots->get("slot" . $i . $namemap) == null) {
 								$thespawn = $config->get($namemap . "Spawn" . $i);
 								$slots->set("slot" . $i . $namemap, $player->getName());
 								$slots->save();
 								$player->sendMessage($this->prefix . "§eYou have entered the game");
-								foreach ($level->getPlayers() as $playersinarena) {
+								foreach ($world->getPlayers() as $playersinarena) {
 									$playersinarena->sendMessage($player->getNameTag() ." §eYou have entered the game");
 								}
-								$spawn = new Position($thespawn[0]+0.5,$thespawn[1],$thespawn[2]+0.5,$level);
-								$level->loadChunk($spawn->getFloorX(), $spawn->getFloorZ());
+								$spawn = new Position($thespawn[0]+0.5,$thespawn[1],$thespawn[2]+0.5,$world);
+								$world->loadChunk($spawn->getFloorX(), $spawn->getFloorZ());
 								$player->teleport($spawn,0,0);
 								$player->getInventory()->clearAll();
 								$player->removeAllEffects();
@@ -280,19 +280,19 @@ class LuckyWars extends PluginBase implements Listener {
 			}
 		} elseif (in_array($player->getName(), $this->op) && $this->mode >= 1 && $this->mode <= 11) {
 			$config = new Config($this->getDataFolder() . "/config.yml", Config::YAML);
-			$config->set($this->currentLevel . "Spawn" . $this->mode, array($block->getX(), $block->getY() + 1, $block->getZ()));
+			$config->set($this->currentWorld . "Spawn" . $this->mode, array($block->getX(), $block->getY() + 1, $block->getZ()));
 			$player->sendMessage($this->prefix . "Spawn " . $this->mode . " has been registered!");
 			$this->mode++;
 			$config->save();
 		} elseif (in_array($player->getName(), $this->op) && $this->mode == 12) {
 			$config = new Config($this->getDataFolder() . "/config.yml", Config::YAML);
-			$config->set($this->currentLevel . "Spawn" . $this->mode, array($block->getX(), $block->getY() + 1, $block->getZ()));
+			$config->set($this->currentWorld . "Spawn" . $this->mode, array($block->getX(), $block->getY() + 1, $block->getZ()));
 			$player->sendMessage($this->prefix . "Spawn " . $this->mode . " has been registered!");
 			$config->set("arenas", $this->arenas);
-			$config->set($this->currentLevel . "start", 0);
+			$config->set($this->currentWorld . "start", 0);
 			$player->sendMessage($this->prefix . "Touch a sign to register the arena");
-			$spawn = $this->getServer()->getDefaultLevel()->getSafeSpawn();
-			$this->getServer()->getDefaultLevel()->loadChunk($spawn->getFloorX(), $spawn->getFloorZ());
+			$spawn = $this->getServer()->getDefaultWorld()->getSafeSpawn();
+			$this->getServer()->getDefaultWorld()->loadChunk($spawn->getFloorX(), $spawn->getFloorZ());
 			$player->teleport($spawn, 0, 0);
 			$config->save();
 			$this->mode = 26;
@@ -325,7 +325,7 @@ class LuckyWars extends PluginBase implements Listener {
 			}
 		}
 		$zip->close();
-		$player->getServer()->loadLevel($name);
+		$player->getServer()->loadWorld($name);
 		unset($zip, $path, $files);
 	}
 
